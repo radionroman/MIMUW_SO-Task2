@@ -6,18 +6,18 @@ Zaimplementuj w asemblerze x86_64 symulator rozproszonej maszyny stosowej. Maszy
 uint64_t core(uint64_t n, char const *p);
 Parametr n zawiera numer rdzenia. Parametr p jest wskaźnikiem na napis ASCIIZ i definiuje obliczenie, jakie ma wykonać rdzeń. Obliczenie składa się z operacji wykonywanych na stosie, który na początku jest pusty. Znaki napisu interpretujemy następująco:
 
-+ – zdejmij dwie wartości ze stosu, oblicz ich sumę i wstaw wynik na stos;
-* – zdejmij dwie wartości ze stosu, oblicz ich iloczyn i wstaw wynik na stos;
-- – zaneguj arytmetycznie wartość na wierzchołku stosu;
-0 do 9 – wstaw na stos odpowiednio wartość 0 do 9;
-n – wstaw na stos numer rdzenia;
-B – zdejmij wartość ze stosu, jeśli teraz na wierzchołku stosu jest wartość różna od zera, potraktuj zdjętą wartość jako liczbę w kodzie uzupełnieniowym do dwójki i przesuń się o tyle operacji;
-C – zdejmij wartość ze stosu i porzuć ją;
-D – wstaw na stos wartość z wierzchołka stosu, czyli zduplikuj wartość na wierzchu stosu;
-E – zamień miejscami dwie wartości na wierzchu stosu;
-G – wstaw na stos wartość uzyskaną z wywołania (zaimplementowanej gdzieś indziej w języku C) funkcji uint64_t get_value(uint64_t n);
-P – zdejmij wartość ze stosu (oznaczmy ją przez w) i wywołaj (zaimplementowaną gdzieś indziej w języku C) funkcję void put_value(uint64_t n, uint64_t w);
-S – synchronizuj rdzenie, zdejmij wartość ze stosu, potraktuj ją jako numer rdzenia m, czekaj na operację S rdzenia m ze zdjętym ze stosu numerem rdzenia n i zamień wartości na wierzchołkach stosów rdzeni m i n.
+- '+' – zdejmij dwie wartości ze stosu, oblicz ich sumę i wstaw wynik na stos;
+- '*' – zdejmij dwie wartości ze stosu, oblicz ich iloczyn i wstaw wynik na stos;
+- '-' – zaneguj arytmetycznie wartość na wierzchołku stosu;
+- 0 do 9 – wstaw na stos odpowiednio wartość 0 do 9;
+- n – wstaw na stos numer rdzenia;
+- B – zdejmij wartość ze stosu, jeśli teraz na wierzchołku stosu jest wartość różna od zera, potraktuj zdjętą wartość jako liczbę w kodzie uzupełnieniowym do dwójki i przesuń się o tyle operacji;
+- C – zdejmij wartość ze stosu i porzuć ją;
+- D – wstaw na stos wartość z wierzchołka stosu, czyli zduplikuj wartość na wierzchu stosu;
+- E – zamień miejscami dwie wartości na wierzchu stosu;
+- G – wstaw na stos wartość uzyskaną z wywołania (zaimplementowanej gdzieś indziej w języku C) funkcji uint64_t get_value(uint64_t n);
+- P – zdejmij wartość ze stosu (oznaczmy ją przez w) i wywołaj (zaimplementowaną gdzieś indziej w języku C) funkcję void put_value(uint64_t n, uint64_t w);
+- S – synchronizuj rdzenie, zdejmij wartość ze stosu, potraktuj ją jako numer rdzenia m, czekaj na operację S rdzenia m ze zdjętym ze stosu numerem rdzenia n i zamień wartości na wierzchołkach stosów rdzeni m i n.
 Po zakończeniu przez rdzeń wykonywania obliczenia jego wynikiem, czyli wynikiem funkcji core, jest wartość z wierzchołka stosu. Wszystkie operacje wykonywane są na liczbach 64-bitowych modulo 2 do potęgi 64.
 
 Wolno założyć, że podany numer rdzenia jest poprawny. Wolno założyć, że obliczenie jest poprawne, tzn. zawiera tylko opisane wyżej znaki, kończy się zerowym bajtem, nie próbuje sięgać po wartość z pustego stosu i nie doprowadza do zakleszczenia. Zachowanie rdzenia dla niepoprawnego obliczenia jest niezdefiniowane.
