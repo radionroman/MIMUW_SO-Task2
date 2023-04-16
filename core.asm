@@ -1,14 +1,28 @@
-global core
 extern putchar, put_value, get_value
+section .bss
+        shared_values: resq N
+        shared_spinlocks: resq N
 
 section .text
-
+global core
 core:
-        mov     r8, rsp
-        mov     rcx, 0
+
+
+        push    rbp
+        push    rbx
+        push    r12
+        push    r13
+        push    r14
+        push    r15
+        mov     rbp, rsp
+        mov     r12, rdi
+        mov     r13, rsi
+        mov     r14, 0
+        lea     r15, [rel shared_values]
+        lea     rbx, [rel shared_spinlocks]
         mov     r9, 0
 .loop1:
-        mov     r9b, byte [rsi]          ; Odczytany znak to '+',
+        mov     r9b, byte [r13]          ; Odczytany znak to '+',
         cmp     r9b, '+'
         je      .plus
         cmp     r9b, '-'
@@ -52,7 +66,7 @@ core:
         push    rax
         jmp     .sub1
 .n:
-        push    rdi
+        push    r12
         jmp     .add1
 .B:
         pop     rax
@@ -60,7 +74,7 @@ core:
         cmp     r10, 0
         push    r10
         je      .sub1
-        add     rsi, rax
+        add     r13, rax
         jmp     .sub1
 .C:
         pop     r10
@@ -69,7 +83,6 @@ core:
         pop     r10
         push    r10
         push    r10
-
         jmp     .add1
 .E:
         pop     rax
@@ -78,61 +91,71 @@ core:
         push    r10
         jmp     .switchend
 .G:
-        test    rcx, 1
-        jz      .G2
-        sub     rsp, 8
+;        test    r14, 1
+;        jz      .G2
+;        sub     rsp, 8
+        mov     rdi, r12
         call    get_value
-        add     rsp, 8
+;        add     rsp, 8
         push    rax
         jmp     .switchend
-.G2:
-        call    get_value
-        push     rax
-        jmp     .switchend
+;.G2:
+;        call    get_value
+;        push     rax
+;        jmp     .switchend
 .P:
 
-        mov     r10, rsi
-        mov     r11, rdi
-        test    rcx, 1
-        jnz     .P2
         pop     rsi
-        push    r10
-        push    r11
+        mov     rdi, r12
         call    put_value
-        pop     rdi
-        pop     rsi
         jmp     .sub1
-.P2:
-
-        pop     rsi
-        push    r10
-        push    r11
-        sub     rsp, 8
-        call    put_value
-        add     rsp, 8
-
-.break:
-        pop     rdi
-        pop     rsi
-
-        jmp     .sub1
+;.P2:
+;
+;        pop     r13
+;        push    r10
+;        push    r11
+;        sub     rsp, 8
+;        call    put_value
+;        add     rsp, 8
+;        pop     r12
+;        pop     r13
+;        jmp     .sub1
 .S:
+        pop     r10
+        pop     r11
+        cmp     r10, r12
+        je      .switchend
+        mov     [r15 + r12 * 8], r11
+        mov     qword [rbx + r12 * 8], 1
+        mov     ecx, 0
+.lockwait:
+        xchg    ecx, [rbx + r10 * 8]
+        test    ecx, ecx
+        jz      .lockwait
+
+        push    qword [r15 + r10 * 8]
         jmp     .switchend
 .liczba:
-        sub     r9, 48
+        sub     r9, '0'
         push    r9
         jmp     .add1
 .sub1:
-        dec     rcx
+        dec     r14
         jmp     .switchend
 .add1:
-        inc     rcx
+        inc     r14
 .switchend:
-        inc     rsi
+        inc     r13
         jmp     .loop1
 
 .loop1exit:
         pop     rax
-        ;mov     rsp, r8
+        mov     rsp, rbp
+        pop     r15
+        pop     r14
+        pop     r13
+        pop     r12
+        pop     rbx
+        pop     rbp
 
         ret
