@@ -2,12 +2,11 @@ extern putchar, put_value, get_value
 section .bss
         shared_values: resq N
         shared_spinlocks: resq N
+        spinlock: resq N
 
 section .text
 global core
 core:
-
-
         push    rbp
         push    rbx
         push    r12
@@ -126,14 +125,32 @@ core:
         cmp     r10, r12
         je      .switchend
         mov     [r15 + r12 * 8], r11
+        mov     r9, qword [rbx + r10 * 8]
+        test    r9, r9
+        jnz     .issecond
+
+.isfirst:
         mov     qword [rbx + r12 * 8], 1
-        mov     ecx, 0
+        mov     ecx, 1
 .lockwait:
-        xchg    ecx, [rbx + r10 * 8]
+        xchg    ecx, [rbx + r12 * 8]
         test    ecx, ecx
-        jz      .lockwait
+        jnz      .lockwait
 
         push    qword [r15 + r10 * 8]
+        mov     qword [rbx + r12 * 8], 0
+        mov     qword [rbx + r10 * 8], 0
+        jmp     .switchend
+.issecond:
+        push    qword [r15 + r10 * 8]
+        mov     qword [rbx + r10 * 8], 0
+        mov     qword [rbx + r12 * 8], 1
+        mov     ecx, 1
+.lock2wait:
+        xchg    ecx, [rbx + r12 * 8]
+        test    ecx, ecx
+        jnz      .lock2wait
+        mov     qword [rbx + r12 * 8], 1
         jmp     .switchend
 .liczba:
         sub     r9, '0'
@@ -147,7 +164,6 @@ core:
 .switchend:
         inc     r13
         jmp     .loop1
-
 .loop1exit:
         pop     rax
         mov     rsp, rbp
@@ -157,5 +173,4 @@ core:
         pop     r12
         pop     rbx
         pop     rbp
-
         ret
