@@ -3,7 +3,7 @@ extern putchar, put_value, get_value
 section .bss
         shared_values: resq N
         shared_spinlocks: resq N
-        spinlock: resq N
+        spinlock: resq 1
 
 section .text
 global core
@@ -136,13 +136,14 @@ core:
         cmp     qword[rbx + r10 * 8], rax
         je      .second
         mov     qword[rbx + r12 * 8], rcx
+
         mov     qword[r14], 0
-.waitpartner:
+.waitsecond:
 ;print   "czekam 2:", r12
         xor     rax,rax
-        lock cmpxchg [rbx + r12 * 8], rcx
-        jne     .waitpartner
-        mov     qword[rbx + r12 * 8], 0
+        lock cmpxchg [rbx + r12 * 8], rax
+        jne     .waitsecond
+        ;mov     qword[rbx + r12 * 8], 0
         mov     [r15 + r10 * 8], r11
         push    qword[r15 + r12 * 8]
         mov     qword[rbx + r10 * 8], 0
@@ -151,14 +152,14 @@ core:
         ;open mutex
         mov     [r15 + r10 * 8], r11
         mov     qword[rbx + r12 * 8], rcx
-        mov     qword[rbx + r10 * 8], 0
         mov     qword[r14], 0
+        mov     qword[rbx + r10 * 8], 0
 .waitfirst:
 ;print   "czekam 3:", r12
         xor     rax,rax
-        lock cmpxchg [rbx + r12 * 8], rcx
+        lock cmpxchg [rbx + r12 * 8], rax
         jne     .waitfirst
-        mov     qword[rbx + r12 * 8], 0
+        ;mov     qword[rbx + r12 * 8], 0
         push    qword[r15 + r12 * 8]
         jmp     .loop1
 
