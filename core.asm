@@ -1,3 +1,4 @@
+%include "macro_print.asm"
 extern putchar, put_value, get_value
 section .bss
         shared_values: resq N
@@ -7,6 +8,7 @@ section .bss
 section .text
 global core
 core:
+        lea     rdx, [rel spinlock]
         push    rbp
         push    rbx
         push    r12
@@ -119,39 +121,90 @@ core:
 ;        pop     r12
 ;        pop     r13
 ;        jmp     .sub1
+
 .S:
+
         pop     r10
         pop     r11
-        cmp     r10, r12
-        je      .switchend
-        mov     [r15 + r12 * 8], r11
-        mov     r9, qword [rbx + r10 * 8]
-        test    r9, r9
-        jnz     .issecond
+        cmp     r10,r12
+        je      .switchend  ; wants to swap with itself
 
-.isfirst:
-        mov     qword [rbx + r12 * 8], 1
-        mov     ecx, 1
-.lockwait:
-        xchg    ecx, [rbx + r12 * 8]
-        test    ecx, ecx
-        jnz      .lockwait
+        ;here should be mutex
+        mov     rcx, 1
+.mutex:
+print   "czekam 1:", r12
+        xchg    rcx, [rdx]
+        test    rcx,rcx
+        jnz     .mutex
+       ; print  "left mutex: ", qword[rdx]
+        cmp     qword[rbx + r10 * 8], 0
+        jne     .second
+        mov     qword[rbx + r12 * 8], 1
+        mov     qword[rdx], 0
+        mov     rcx, 1
+.waitpartner:
+print   "czekam 2:", r12
+        xchg    rcx, [rbx + r12 * 8]
+        test    rcx, rcx
+        jnz     .waitpartner
+        mov     qword[rbx + r12 * 8], 0
+        mov     [r15 + r10 * 8], r11
+        push    qword[r15 + r12 * 8]
+        mov     qword[rbx + r10 * 8], 0
+        jmp     .switchend
 
-        push    qword [r15 + r10 * 8]
-        mov     qword [rbx + r12 * 8], 0
-        mov     qword [rbx + r10 * 8], 0
+.second:
+
+        ;open mutex
+
+        mov     [r15 + r10 * 8], r11
+        mov     qword[rbx + r12 * 8], 1
+        mov     qword[rbx + r10 * 8], 0
+        mov     qword[rdx], 0
+        mov     rcx, 1
+.waitfirst:
+print   "czekam 3:", r12
+        xchg    rcx, [rbx + r12 * 8]
+        test    rcx, rcx
+        jnz     .waitfirst
+        mov     qword[rbx + r12 * 8], 0
+        push    qword[r15 + r12 * 8]
         jmp     .switchend
-.issecond:
-        push    qword [r15 + r10 * 8]
-        mov     qword [rbx + r10 * 8], 0
-        mov     qword [rbx + r12 * 8], 1
-        mov     ecx, 1
-.lock2wait:
-        xchg    ecx, [rbx + r12 * 8]
-        test    ecx, ecx
-        jnz      .lock2wait
-        mov     qword [rbx + r12 * 8], 1
-        jmp     .switchend
+
+
+;.S:
+;        pop     r10
+;        pop     r11
+;        cmp     r10, r12
+;        je      .switchend
+;        mov     [r15 + r12 * 8], r11
+;        mov     r9, qword [rbx + r10 * 8]
+;        test    r9, r9
+;        jnz     .issecond
+;
+;.isfirst:
+;        mov     qword [rbx + r12 * 8], 1
+;        mov     ecx, 1
+;.lockwait:
+;        xchg    ecx, [rbx + r12 * 8]
+;        test    ecx, ecx
+;        jnz      .lockwait
+;
+;        push    qword [r15 + r10 * 8]
+;        mov     qword [rbx + r12 * 8], 0
+;        mov     qword [rbx + r10 * 8], 0
+;        jmp     .switchend
+;.issecond:
+;        push    qword [r15 + r10 * 8]
+;        mov     qword [rbx + r10 * 8], 0
+;        mov     qword [rbx + r12 * 8], 1
+;        mov     ecx, 1
+;.lock2wait:
+;        xchg    ecx, [rbx + r12 * 8]
+;        test    ecx, ecx
+;        jnz      .lock2wait
+;        mov     qword [rbx + r12 * 8], 1
+;        jmp     .switchend
 .liczba:
         sub     r9, '0'
         push    r9
