@@ -85,7 +85,6 @@ core:
         ;pop     r10
         push    r10
         ;push    r10
-
 .pushr10:
         push    r10
         jmp     .loop1
@@ -117,18 +116,17 @@ core:
 
 
 .S:
-        pop     r9
-        xchg    qword[r15 + r12 * 8],r9
-        mov     r9, r10
-        xchg    qword[rbx + r12 * 8], r9
-        mov     r9, N
+
+        pop     qword[r15 + r12 * 8]
+        mov     rax, r10
+        xchg    qword[rbx + r12 * 8], rax
 .wait1:
         mov     rax, r12
         lock \
-        cmpxchg qword[rbx + r10 * 8], r9
+        cmpxchg qword[rbx + r10 * 8], r12
         jne     .wait1
         push    qword[r15 + r10 * 8]
-        ;mov     qword[rbx + r10 * 8], -1
+        mov     qword[rbx + r10 * 8], N
 .wait2:
         mov     rax, N
         lock \
