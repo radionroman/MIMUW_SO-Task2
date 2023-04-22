@@ -1,15 +1,16 @@
 extern put_value, get_value
 
 section .data
-        waits times N dq N
+        waits times N dq N  ; global array initialized to N value,
+        ; waits[i] = j, i-th thread awaits j-th thread
 
 section .bss
-        val: resq N
+        val: resq N ; values threads pop from stack
 
 section .text
 global core
 core:
-        ; Pushing all the values from preserved registers on stack
+        ; pushing all the values from preserved registers on stack
         ; so we can use these registers to safely store our variables
         push    rbp
         push    rbx
@@ -21,24 +22,24 @@ core:
         ; to retrieve them before end
         mov     rbp, rsp
         mov     r12, rdi    ; r12 - n value
-        mov     r13, rsi    ; r13 - pointer to instructions string
+        mov     r13, rsi    ; r13 - pointer to string with instructions
         lea     r15, [rel val]  ; r15 - pointer to global array with values
         lea     rbx, [rel waits]    ; rbx - pointer to global array with locks
 .loop1:
-        ; main loop iterating through instructions string
+        ; main loop iterating through string
         mov     rax, 0  ; cleaning rax register
-        mov     al, byte [r13]  ; storing in the lower 8 bits of rax instruction char
+        mov     al, byte [r13]  ; storing char in the lower 8 bits of rax
         inc     r13     ; move pointer to the next char in string
         test    al, al  ; if al is 0 we encountered the end of the string
         jz      .ret    ; if so jump out of the loop
-        ; next we check the char to etermine which instruction we need to jump to
+        ; next we check the char to determine to which instruction we need to jump
         cmp     al, 'G'
         je      .G
         cmp     al, 'P'
         je      .P
         cmp     al , 'n'
         je      .n
-        ; all the next instructions use the value from the stack
+        ; all the following instructions use the value from the stack
         ; so we pop it once here, to avoid repetition of this pop later on
         ; in each of the instructions
         pop     r10
@@ -59,9 +60,9 @@ core:
         cmp     al, 'S'
         je      .S
 .liczba:
-        ; if the char !=0 and none of the above
+        ; if the char != 0 and none of the above
         ; it represents digit from which we subtract '0'
-        ; to turn it into its value
+        ; to turn it into int value
         sub     rax, '0'
         ;push    r10
         jmp     .pushr10rax    ; this label is used to minimize number of "push r10 push rax" through the code
@@ -79,15 +80,15 @@ core:
         push    r10
         jmp     .loop1
 .mult:
-        ; instruction multiplies two upper values of the stack by each other
-        ; multiply rax by r10 and push the result
+        ; instruction multiplies two upper values of the stack
+        ; multiplies rax by r10 and pushes the result
         ;pop     r10
         pop     rax
         imul    r10
         ;push    rax
         jmp     .pushrax    ; this label is used to minimize number of "push rax" through the code
 .n:
-        ; instructions pushes n onto the stack
+        ; instruction pushes n onto the stack
         push    r12
         jmp     .loop1
 .B:
@@ -110,7 +111,7 @@ core:
         ; it jumps to this label
         push    r10
 .pushrax:
-        ; if instruction has to push only rax on the stack at the end
+        ; if an instruction has to push only rax on the stack at the end then
         ; it jumps to this label
         push    rax
         jmp     .loop1
@@ -138,7 +139,7 @@ core:
 
 .P:
         ; this instruction puts n in place for first argument
-        ; and pops value from the stack in the second argument
+        ; and pops value from the stack as second argument
         ; checks if it needs to align the stack
         ; and then calls put_value function
         pop     rsi
@@ -154,9 +155,9 @@ core:
         ; and exchanges values at the tops of their stacks
         pop     qword[r15 + r12 * 8]    ; puts value in values[n]
         mov     rax, r10    ; move m to rax
-        xchg    qword[rbx + r12 * 8], rax   ; atomically waits[n] = m
+        xchg    qword[rbx + r12 * 8], rax   ; atomically sets waits[n] = m
 .wait1:
-        ; spinlock that spins until waits[m] != n
+        ; spinlock that spins while waits[m] != n
         mov     rax, r12
         lock \
         cmpxchg qword[rbx + r10 * 8], r12
@@ -164,7 +165,7 @@ core:
         push    qword[r15 + r10 * 8]    ; pushes values[m] onto the stack
         mov     qword[rbx + r10 * 8], N ; sets waits[m] = N
 .wait2:
-        ; spins until waits[m] != N
+        ; spins while waits[m] != N
         mov     rax, N
         lock \
         cmpxchg qword[rbx + r12 * 8], rax
