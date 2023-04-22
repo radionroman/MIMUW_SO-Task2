@@ -21,59 +21,52 @@ core:
         lea     rbx, [rel waits]
 
 .loop1:
-        mov     r9, 0
-        mov     r9b, byte [r13]          ; Odczytany znak to '+',
+        mov     rax, 0
+        mov     al, byte [r13]          ; Odczytany znak to '+',
         inc     r13
-        test    r9b, r9b
+        test    al, al
         jz      .ret
-        cmp     r9b, 'G'
+        cmp     al, 'G'
         je      .G
-        cmp     r9b, 'P'
+        cmp     al, 'P'
         je      .P
-        cmp     r9b, 'n'
+        cmp     al , 'n'
         je      .n
-
-        pop     rax
-
-        cmp     r9b, '+'
-        je      .plus
-        cmp     r9b, '-'
-        je      .minus
-        cmp     r9b, 'D'
-        je      .D
-        cmp     r9b, 'C'
-        je      .loop1
 
         pop     r10
 
-        cmp     r9b, '*'
-        je      .mult
-        cmp     r9b, 'B'
+        cmp     al, '+'
+        je      .plus
+        cmp     al, '-'
+        je      .minus
+        cmp     al, 'D'
+        je      .D
+        cmp     al, 'C'
+        je      .loop1
+        cmp     al, 'B'
         je      .B
-        cmp     r9b, 'E'
+        cmp     al, 'E'
         je      .E
-        cmp     r9b, 'S'
+        cmp     al, '*'
+        je      .mult
+        cmp     al, 'S'
         je      .S
 .liczba:
-        sub     r9, '0'
+        sub     rax, '0'
         push    r10
-        push    rax
-        push    r9
-        jmp     .loop1
-
-        ; mult,B,E,S
+        jmp     .pushrax
 .plus:
-        ;pop     rax
-        add     [rsp], rax
+        ;pop     r10
+        add     [rsp], r10
         jmp     .loop1
 .minus:
-        ;pop     rax
-        neg     rax
-        ;push    rax
-        jmp     .pushrax
-.mult:
-        ;pop     rax
         ;pop     r10
+        neg     r10
+        ;push    r10
+        jmp     .pushr10
+.mult:
+        ;pop     r10
+        pop     rax
         imul    r10
         ;push    rax
         jmp     .pushrax
@@ -81,23 +74,24 @@ core:
         push    r12
         jmp     .loop1
 .B:
-        ;pop     rax
         ;pop     r10
-        cmp     r10, 0
-        xchg    r10, rax
+        pop     rax
+        cmp     rax, 0
         je      .pushrax
         add     r13, r10
         jmp     .pushrax
 
 .D:
-        ;pop     rax
-        push    rax
-        ;push    rax
-        jmp     .pushrax
-.E:
-        ;pop     rax
         ;pop     r10
-        xchg    rax, r10
+        push    r10
+        ;push    r10
+
+.pushr10:
+        push    r10
+        jmp     .loop1
+.E:
+        ;pop     r10
+        pop     rax
         push    r10
         ;push    rax
         jmp     .pushrax
@@ -108,7 +102,6 @@ core:
         sub     rsp, r14
         call    get_value
         add     rsp, r14
-
 .pushrax:
         push    rax
         jmp     .loop1
@@ -124,24 +117,26 @@ core:
 
 
 .S:
-        ;pop     rax
-        ;xchg    rax, r10
-        mov     qword[r15 + r12 * 8], r10
+        pop     r9
+        xchg    qword[r15 + r12 * 8],r9
+        mov     r9, r10
+        xchg    qword[rbx + r12 * 8], r9
         mov     r9, N
-        mov     r10, rax
-        mov     qword[rbx + r12 * 8], r10
 .wait1:
         mov     rax, r12
-        lock cmpxchg qword[rbx + r10 * 8], r9
+        lock \
+        cmpxchg qword[rbx + r10 * 8], r9
         jne     .wait1
         push    qword[r15 + r10 * 8]
         ;mov     qword[rbx + r10 * 8], -1
 .wait2:
         mov     rax, N
-        lock cmpxchg qword[rbx + r12 * 8], rax
+        lock \
+        cmpxchg qword[rbx + r12 * 8], rax
         jne     .wait2
         jmp     .loop1
 .ret:
+
         pop     rax
         mov     rsp, rbp
         pop     r15
