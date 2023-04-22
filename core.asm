@@ -1,7 +1,7 @@
 extern put_value, get_value
 
 section .data
-        waits times N dq -1
+        waits times N dq N
 section .bss
         val: resq N
 
@@ -12,6 +12,7 @@ core:
         push    rbx
         push    r12
         push    r13
+        push    r14
         push    r15
         mov     rbp, rsp
         mov     r12, rdi
@@ -32,19 +33,18 @@ core:
         cmp     r9b, 'n'
         je      .n
 
-        pop     r10
+        pop     rax
 
         cmp     r9b, '+'
         je      .plus
         cmp     r9b, '-'
         je      .minus
-
         cmp     r9b, 'D'
         je      .D
         cmp     r9b, 'C'
         je      .loop1
 
-        pop     rax
+        pop     r10
 
         cmp     r9b, '*'
         je      .mult
@@ -54,21 +54,26 @@ core:
         je      .E
         cmp     r9b, 'S'
         je      .S
-        jmp     .liczba
+.liczba:
+        sub     r9, '0'
+        push    r10
+        push    rax
+        push    r9
+        jmp     .loop1
 
         ; mult,B,E,S
 .plus:
-        ;pop     r10
-        add     [rsp], r10
+        ;pop     rax
+        add     [rsp], rax
         jmp     .loop1
 .minus:
-        ;pop     r10
-        neg     r10
-        push    r10
-        jmp     .loop1
-.mult:
-        ;pop     r10
         ;pop     rax
+        neg     rax
+        ;push    rax
+        jmp     .pushrax
+.mult:
+        ;pop     rax
+        ;pop     r10
         imul    r10
         ;push    rax
         jmp     .pushrax
@@ -76,85 +81,71 @@ core:
         push    r12
         jmp     .loop1
 .B:
-        ;pop     r10
         ;pop     rax
-        cmp     rax, 0
-        ;push    rax
+        ;pop     r10
+        cmp     r10, 0
+        xchg    r10, rax
         je      .pushrax
         add     r13, r10
         jmp     .pushrax
 
 .D:
-        ;pop     r10
-        push    r10
-        push    r10
-        jmp     .loop1
-.E:
-        ;pop     r10
         ;pop     rax
+        push    rax
+        ;push    rax
+        jmp     .pushrax
+.E:
+        ;pop     rax
+        ;pop     r10
+        xchg    rax, r10
         push    r10
         ;push    rax
         jmp     .pushrax
 .G:
         mov     rdi, r12
-        test    rsp, 0x8
-        jz     .GEven
-        sub     rsp, 8
+        mov     r14, 0x8
+        and     r14, rsp
+        sub     rsp, r14
         call    get_value
-        add     rsp, 8
-        ;push    rax
-        jmp     .pushrax
-.GEven:
-        call    get_value
-        ;push    rax
-        jmp     .pushrax
-.P:
-        pop     rsi
-        mov     rdi, r12
-        test    rsp, 0x8
-        jz      .PEven
-        sub     rsp, 8
-        call    put_value
-        add     rsp, 8
-        jmp     .loop1
-.PEven:
-        call    put_value
-        jmp     .loop1
+        add     rsp, r14
 
-.S:
-        ;pop     r10
-        xchg    qword[r15 + r12 * 8], rax
-        mov     rax, r10
-        xchg    qword[rbx + r12 * 8], rax
-.wait1:
-        mov     rax, r12
-        lock cmpxchg qword[rbx + r10 * 8], r12
-        jne     .wait1
-        push    qword[r15 + r10 * 8]
-        mov     rax, -1
-        xchg    qword[rbx + r10 * 8], rax
-.wait2:
-        mov     rax, -1
-        lock cmpxchg qword[rbx + r12 * 8], rax
-        jne     .wait2
-        jmp     .loop1
-
-.liczba:
-        sub     r9, '0'
-        push    rax
-        push    r10
-        push    r9
-        jmp     .loop1
 .pushrax:
         push    rax
         jmp     .loop1
+.P:
+        pop     rsi
+        mov     rdi, r12
+        mov     r14, 0x8
+        and     r14, rsp
+        sub     rsp, r14
+        call    put_value
+        add     rsp, r14
+        jmp     .loop1
 
 
+.S:
+        ;pop     rax
+        ;xchg    rax, r10
+        mov     qword[r15 + r12 * 8], r10
+        mov     r9, N
+        mov     r10, rax
+        mov     qword[rbx + r12 * 8], r10
+.wait1:
+        mov     rax, r12
+        lock cmpxchg qword[rbx + r10 * 8], r9
+        jne     .wait1
+        push    qword[r15 + r10 * 8]
+        ;mov     qword[rbx + r10 * 8], -1
+.wait2:
+        mov     rax, N
+        lock cmpxchg qword[rbx + r12 * 8], rax
+        jne     .wait2
+        jmp     .loop1
 .ret:
-
         pop     rax
         mov     rsp, rbp
         pop     r15
+        pop     r14
         pop     r13
         pop     r12
         pop     rbx
